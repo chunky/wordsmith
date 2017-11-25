@@ -8,8 +8,13 @@ package org.icculus.chunky.wordsmith;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Random;
 import org.sqlite.SQLiteConfig;
 
 /**
@@ -53,6 +58,8 @@ public class DBManager {
     
     public void createDummyData(Connection dbConn) throws SQLException {
         final String[] insertSQL = new String[] {
+            "DELETE FROM author WHERE 1",
+            
             "INSERT OR IGNORE INTO author (name) VALUES ('Chunky Kibbles')",
             "INSERT OR IGNORE INTO author (name) VALUES ('Gary Briggs')",
             
@@ -83,40 +90,62 @@ public class DBManager {
             dbConn.commit();
         }
         
-        for(String bookName : new String[] { "Kitten Fury", "Husband of a Writer" } ) {
-            
-        }
+        Random rng = new Random(42l);
         
+        String wordCountSQL = "INSERT INTO wordcount (bookid, delta, adddate) VALUES "
+                + " ((SELECT bookid FROM book WHERE title=?), ?, ?)";
+        
+        try(PreparedStatement stmt = dbConn.prepareStatement(wordCountSQL)) {
+            for(String bookName : new String[] { "Kitten Fury", "Husband of a Writer" } ) {
+                stmt.setString(1, bookName);
+                
+                int n_samples = 10 + rng.nextInt(100);
+                LocalDateTime currentWorkDay = LocalDateTime.now().minus(1, ChronoUnit.YEARS);
+                for(int i = 0; i < n_samples; i++) {
+                    int todaysProgress = 20 + rng.nextInt(8000);
+                    stmt.setInt(2, todaysProgress);
+                    stmt.setString(3, currentWorkDay.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    stmt.executeUpdate();
+                    int skipDays = Math.max(1, rng.nextInt(5)-3);
+                    currentWorkDay = currentWorkDay.plusDays(1);
+                }
+            }
+            dbConn.commit();
+        }
     }
     
     protected void createDBStructures(Connection dbConn) throws SQLException {
         final String[] createSQL = new String[] {
             "CREATE TABLE IF NOT EXISTS author (authorid INTEGER PRIMARY KEY,"
                 + " name TEXT NOT NULL,"
-                + " createdate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " createdate INTEGER DEFAULT CURRENT_TIMESTAMP,"
+                + " deleted INTEGER DEFAULT 0,"
                 + " UNIQUE(name)"
                 + ")",
             
             "CREATE TABLE IF NOT EXISTS book (bookid INTEGER PRIMARY KEY,"
-                + " authorid INTEGER NOT NULL REFERENCES author(authorid),"
+                + " authorid INTEGER NOT NULL REFERENCES author(authorid) ON DELETE CASCADE,"
                 + " title TEXT NOT NULL,"
                 + " description TEXT,"
-                + " createdate DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                + " UNIQUE(title)"
+                + " createdate INTEGER DEFAULT CURRENT_TIMESTAMP,"
+                + " deleted INTEGER DEFAULT 0,"
+                + " UNIQUE(authorid, title)"
                 + ")",
             
             "CREATE TABLE IF NOT EXISTS wordcount (wordcountid INTEGER PRIMARY KEY,"
-                + " bookid INTEGER NOT NULL REFERENCES book(bookid),"
+                + " bookid INTEGER NOT NULL REFERENCES book(bookid) ON DELETE CASCADE,"
                 + " delta INTEGER NOT NULL,"
-                + " adddate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " adddate INTEGER DEFAULT CURRENT_TIMESTAMP,"
+                + " deleted INTEGER DEFAULT 0,"
                 + " UNIQUE(bookid, adddate)"
                 + ")",
             
             "CREATE TABLE IF NOT EXISTS target (targetid INTEGER PRIMARY KEY,"
-                + " bookid INTEGER NOT NULL REFERENCES book(bookid),"
+                + " bookid INTEGER NOT NULL REFERENCES book(bookid) ON DELETE CASCADE,"
                 + " wordcount INTEGER NOT NULL,"
-                + " adddate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " adddate INTEGER DEFAULT CURRENT_TIMESTAMP,"
                 + " targetdate DATETIME,"
+                + " deleted INTEGER DEFAULT 0,"
                 + " UNIQUE(bookid, targetdate)"
                 + ")"
         };
