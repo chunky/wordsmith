@@ -1,0 +1,138 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package org.icculus.chunky.wordsmith;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import org.sqlite.SQLiteConfig;
+
+/**
+ *
+ * @author chunky
+ */
+public class DBManager {
+    /**
+     * Open the specified database, and create structures if they don't already exist
+     * 
+     * @param dbPath
+     * @return
+     * @throws SQLException 
+     */
+    public Connection openDB(String dbPath) throws SQLException {
+        Connection dbConn;
+        
+        if(!dbPath.startsWith(":")) {
+            String parentDir = new File(dbPath).getAbsoluteFile().getParent();
+            new File(parentDir).mkdirs();
+        }
+        
+        SQLiteConfig sqlcf = new SQLiteConfig();
+        sqlcf.setJournalMode(SQLiteConfig.JournalMode.DELETE);
+        sqlcf.enforceForeignKeys(true);
+        sqlcf.setSynchronous(SQLiteConfig.SynchronousMode.FULL);
+        
+        dbConn = DriverManager.getConnection("jdbc:sqlite:" + dbPath, sqlcf.toProperties());
+        dbConn.setAutoCommit(false);
+        
+        try(Statement stmt = dbConn.createStatement()) {
+            stmt.executeUpdate("PRAGMA threads=4");
+        }
+        createDBStructures(dbConn);
+        return dbConn;
+    }
+    
+    public void closeDB(Connection dbConn) throws SQLException {
+        dbConn.close();
+    }
+    
+    public void createDummyData(Connection dbConn) throws SQLException {
+        final String[] insertSQL = new String[] {
+            "INSERT OR IGNORE INTO author (name) VALUES ('Chunky Kibbles')",
+            "INSERT OR IGNORE INTO author (name) VALUES ('Gary Briggs')",
+            
+            "INSERT OR IGNORE INTO book (authorid, title, description) VALUES ("
+                + "  (SELECT authorid FROM author WHERE name='Chunky Kibbles'), "
+                + "   'Kitten Fury', 'In which a Kitten Destroys the World'"
+                + ")",
+            "INSERT OR IGNORE INTO book (authorid, title, description) VALUES ("
+                + "  (SELECT authorid FROM author WHERE name='Chunky Kibbles'), "
+                + "   'Puppy Fury', 'In which a Puppy Destroys the World'"
+                + ")",
+            
+            "INSERT OR IGNORE INTO book (authorid, title, description) VALUES ("
+                + "  (SELECT authorid FROM author WHERE name='Gary Briggs'), "
+                + "   'Husband of a Writer', 'A completely unnecessary book that adds nothing to anything'"
+                + ")",
+            
+        };
+        try(Statement stmt = dbConn.createStatement()) {
+            for(String sql : insertSQL) {
+                try {
+                    stmt.executeUpdate(sql);
+                } catch(SQLException ex) {
+                    System.out.println(sql);
+                    ex.printStackTrace();
+                }
+            }
+            dbConn.commit();
+        }
+        
+        for(String bookName : new String[] { "Kitten Fury", "Husband of a Writer" } ) {
+            
+        }
+        
+    }
+    
+    protected void createDBStructures(Connection dbConn) throws SQLException {
+        final String[] createSQL = new String[] {
+            "CREATE TABLE IF NOT EXISTS author (authorid INTEGER PRIMARY KEY,"
+                + " name TEXT NOT NULL,"
+                + " createdate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " UNIQUE(name)"
+                + ")",
+            
+            "CREATE TABLE IF NOT EXISTS book (bookid INTEGER PRIMARY KEY,"
+                + " authorid INTEGER NOT NULL REFERENCES author(authorid),"
+                + " title TEXT NOT NULL,"
+                + " description TEXT,"
+                + " createdate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " UNIQUE(title)"
+                + ")",
+            
+            "CREATE TABLE IF NOT EXISTS wordcount (wordcountid INTEGER PRIMARY KEY,"
+                + " bookid INTEGER NOT NULL REFERENCES book(bookid),"
+                + " delta INTEGER NOT NULL,"
+                + " adddate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " UNIQUE(bookid, adddate)"
+                + ")",
+            
+            "CREATE TABLE IF NOT EXISTS target (targetid INTEGER PRIMARY KEY,"
+                + " bookid INTEGER NOT NULL REFERENCES book(bookid),"
+                + " wordcount INTEGER NOT NULL,"
+                + " adddate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + " targetdate DATETIME,"
+                + " UNIQUE(bookid, targetdate)"
+                + ")"
+        };
+        
+        try(Statement stmt = dbConn.createStatement()) {
+            boolean create_exception = false;
+            for(String sql : createSQL) {
+                try {
+                    stmt.executeUpdate(sql);
+                } catch(SQLException ex) {
+                    System.out.println(sql);
+                    ex.printStackTrace();
+                    create_exception = true;
+                }
+            }
+            dbConn.commit();
+        }
+    }
+}
