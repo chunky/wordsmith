@@ -5,18 +5,175 @@
  */
 package org.icculus.chunky.wordsmith.GUI;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.ComboBoxModel;
+import javax.swing.event.ListDataListener;
+import org.icculus.chunky.wordsmith.DBManager;
+
 /**
  *
  * @author chunky
  */
 public class MainWindow extends javax.swing.JFrame {
 
+    Connection dbConn = null;
+    
     /**
      * Creates new form WordSmith
      */
     public MainWindow() {
+        try {
+            DBManager dbm = new DBManager();
+            dbConn = dbm.openDB("test.sqlite");
+            dbm.createDummyData(dbConn);
+        } catch (SQLException ex) {
+            Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         initComponents();
+        configureCombos();
         setLocationRelativeTo(null);
+    }
+    
+    private void configureCombos() {
+        
+        authorCombo.setModel(new ComboBoxModel<String>() {
+            Object selectedItem = "Choose an Author...";
+            
+            Set<ListDataListener> listeners = new LinkedHashSet<>();
+
+            String[] authorList = new String[] {};
+            @Override
+            public void setSelectedItem(Object anItem) {
+                selectedItem = anItem;
+            }
+
+            @Override
+            public Object getSelectedItem() {
+                return selectedItem;
+            }
+
+            private void populateAuthorList() {
+                String sql = "SELECT name FROM author ORDER BY name";
+                try(Statement stmt = dbConn.createStatement()) {
+                    ArrayList<String> al = new ArrayList<>();
+                    try(ResultSet rs = stmt.executeQuery(sql)) {
+                        while(rs.next()) {
+                            al.add(rs.getString("name"));
+                        }
+                    }
+                    authorList = al.toArray(new String[al.size()]);
+                } catch(SQLException ex) {
+                    ex.printStackTrace();
+                    authorList = new String[] {};
+                }
+            }
+            
+            @Override
+            public int getSize() {
+                if(null == dbConn) {
+                    return 0;
+                }
+                populateAuthorList();
+                return authorList.length;
+            }
+
+            @Override
+            public String getElementAt(int index) {
+                return authorList.length<index?null:authorList[index];
+            }
+
+            @Override
+            public void addListDataListener(ListDataListener l) {
+                listeners.add(l);
+            }
+
+            @Override
+            public void removeListDataListener(ListDataListener l) {
+                listeners.remove(l);
+            }
+        });
+        
+        authorCombo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                bookCombo.setSelectedIndex(0);
+                bookCombo.repaint();
+            }
+        });
+        
+        bookCombo.setModel(new ComboBoxModel<String>() {
+            Object selectedItem = "Choose a Book...";
+            
+            Set<ListDataListener> listeners = new LinkedHashSet<>();
+
+            String[] bookList = new String[] {};
+            @Override
+            public void setSelectedItem(Object anItem) {
+                selectedItem = anItem;
+            }
+
+            @Override
+            public Object getSelectedItem() {
+                return selectedItem;
+            }
+
+            private void populateBookList() {
+                String sql = "SELECT title FROM book WHERE authorid=(SELECT authorid FROM author WHERE name=?) ORDER BY title";
+                try(PreparedStatement stmt = dbConn.prepareStatement(sql)) {
+                    stmt.setString(1, (String) authorCombo.getSelectedItem());
+                    ArrayList<String> al = new ArrayList<>();
+                    try(ResultSet rs = stmt.executeQuery()) {
+                        while(rs.next()) {
+                            al.add(rs.getString("title"));
+                        }
+                    }
+                    bookList = al.toArray(new String[al.size()]);
+                } catch(SQLException ex) {
+                    ex.printStackTrace();
+                    bookList = new String[] {};
+                }
+            }
+            
+            @Override
+            public int getSize() {
+                if(null == dbConn) {
+                    return 0;
+                }
+                populateBookList();
+                return bookList.length;
+            }
+
+            @Override
+            public String getElementAt(int index) {
+                return bookList.length<index?null:bookList[index];
+            }
+
+            @Override
+            public void addListDataListener(ListDataListener l) {
+                listeners.add(l);
+            }
+
+            @Override
+            public void removeListDataListener(ListDataListener l) {
+                listeners.remove(l);
+            }
+        });
+    }
+
+    public Connection getDbConn() {
+        return dbConn;
     }
 
     /**
@@ -27,20 +184,29 @@ public class MainWindow extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
+
+        authorCombo = new javax.swing.JComboBox<>();
+        bookCombo = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("WordSmith");
+        setPreferredSize(new java.awt.Dimension(1024, 768));
+        getContentPane().setLayout(new java.awt.GridBagLayout());
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
+        authorCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Author..." }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(3, 3, 3, 3);
+        getContentPane().add(authorCombo, gridBagConstraints);
+
+        bookCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Book..." }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 3.0;
+        gridBagConstraints.insets = new java.awt.Insets(3, 3, 3, 3);
+        getContentPane().add(bookCombo, gridBagConstraints);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -82,5 +248,7 @@ public class MainWindow extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JComboBox<String> authorCombo;
+    private javax.swing.JComboBox<String> bookCombo;
     // End of variables declaration//GEN-END:variables
 }
