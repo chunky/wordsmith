@@ -18,7 +18,7 @@ import javax.swing.JOptionPane;
  *
  * @author chunky
  */
-public class AddWordsPanel extends javax.swing.JPanel {
+public class AddWordsPanel extends javax.swing.JPanel implements DBChangeListener {
 
     MainWindow mw = null;
     
@@ -58,7 +58,7 @@ public class AddWordsPanel extends javax.swing.JPanel {
             stmt.setInt(2, (Integer)deltaSpinner.getValue());
             stmt.executeUpdate();
             dbConn.commit();
-            mw.updateCharts();
+            mw.notifyDBChange();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -114,5 +114,10 @@ public class AddWordsPanel extends javax.swing.JPanel {
     private javax.swing.JSpinner deltaSpinner;
     private javax.swing.JButton jButton1;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public void notifyDBChanges() {
+        bookCombo.setModel(getBookComboModel());
+    }
 
 }

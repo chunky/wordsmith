@@ -7,6 +7,8 @@ package org.icculus.chunky.wordsmith.GUI;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.HashSet;
 import org.icculus.chunky.wordsmith.DBManager;
 
 /**
@@ -18,6 +20,8 @@ public class MainWindow extends javax.swing.JFrame {
     Connection dbConn = null;
     AddWordsPanel addWordsPanel;
     WritingProgressPanel writingProgressPanel;
+    EditAuthorsBooksPanel authorsBooksPanel;
+    Collection<DBChangeListener> dbChangeListeners = new HashSet<>();
     
     /**
      * Creates new form WordSmith
@@ -34,17 +38,26 @@ public class MainWindow extends javax.swing.JFrame {
         initComponents();
         writingProgressPanel = new WritingProgressPanel(this);
         chartHostPanel.add(writingProgressPanel);
+        dbChangeListeners.add(writingProgressPanel);
         
         addWordsPanel = new AddWordsPanel(this);
         addWordsHostPanel.add(addWordsPanel);
+        dbChangeListeners.add(addWordsPanel);
+        
+        authorsBooksPanel = new EditAuthorsBooksPanel(this);
+        authorsBooksHostPanel.add(authorsBooksPanel);
+        dbChangeListeners.add(authorsBooksPanel);
+        
         
         setLocationRelativeTo(null);
     }
     
-    public void updateCharts() {
-        writingProgressPanel.updateChart();
+    public void notifyDBChange() {
+        for(DBChangeListener l : dbChangeListeners) {
+            l.notifyDBChanges();
+        }
     }
-
+    
     public Connection getDbConn() {
         return dbConn;
     }
@@ -59,20 +72,25 @@ public class MainWindow extends javax.swing.JFrame {
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
 
+        mainTabs = new javax.swing.JTabbedPane();
+        jPanel1 = new javax.swing.JPanel();
         addWordsHostPanel = new javax.swing.JPanel();
         chartHostPanel = new javax.swing.JPanel();
+        authorsBooksHostPanel = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("WordSmith");
         setPreferredSize(new java.awt.Dimension(1024, 768));
         getContentPane().setLayout(new java.awt.GridBagLayout());
 
+        jPanel1.setLayout(new java.awt.GridBagLayout());
+
         addWordsHostPanel.setLayout(new java.awt.GridLayout());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
-        getContentPane().add(addWordsHostPanel, gridBagConstraints);
+        jPanel1.add(addWordsHostPanel, gridBagConstraints);
 
         chartHostPanel.setLayout(new java.awt.GridLayout());
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -80,7 +98,18 @@ public class MainWindow extends javax.swing.JFrame {
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
-        getContentPane().add(chartHostPanel, gridBagConstraints);
+        jPanel1.add(chartHostPanel, gridBagConstraints);
+
+        mainTabs.addTab("Progress", jPanel1);
+
+        authorsBooksHostPanel.setLayout(new java.awt.GridLayout());
+        mainTabs.addTab("Authors & Books", authorsBooksHostPanel);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        getContentPane().add(mainTabs, gridBagConstraints);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -123,6 +152,9 @@ public class MainWindow extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel addWordsHostPanel;
+    private javax.swing.JPanel authorsBooksHostPanel;
     private javax.swing.JPanel chartHostPanel;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JTabbedPane mainTabs;
     // End of variables declaration//GEN-END:variables
 }

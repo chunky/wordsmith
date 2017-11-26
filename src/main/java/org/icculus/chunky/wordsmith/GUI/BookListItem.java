@@ -33,7 +33,8 @@ public class BookListItem {
         
         String sql = "SELECT bookid, author.name AS author, author.authorid AS authorid, book.title AS title"
                 + " FROM book INNER JOIN author ON author.authorid=book.authorid"
-                + " WHERE NOT author.deleted AND NOT book.deleted";
+                + " WHERE NOT author.deleted AND NOT book.deleted"
+                + " ORDER BY author.name, book.title";
         
         ArrayList<BookListItem> l = new ArrayList<>();
         try(PreparedStatement stmt = dbConn.prepareStatement(sql)) {

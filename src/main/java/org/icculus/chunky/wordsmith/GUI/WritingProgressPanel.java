@@ -31,7 +31,7 @@ import org.jfree.data.category.DefaultCategoryDataset;
  *
  * @author chunky
  */
-public class WritingProgressPanel extends javax.swing.JPanel {
+public class WritingProgressPanel extends javax.swing.JPanel implements DBChangeListener {
 
     MainWindow mw;
     JFreeChart chart;
@@ -208,4 +208,10 @@ public class WritingProgressPanel extends javax.swing.JPanel {
     private javax.swing.JPanel chartPanel;
     private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public void notifyDBChanges() {
+        populateBookList();
+        updateChart();
+    }
 }
