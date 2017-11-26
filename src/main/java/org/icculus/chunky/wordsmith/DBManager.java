@@ -69,6 +69,10 @@ public class DBManager {
                 + ")",
             "INSERT OR IGNORE INTO book (authorid, title, description) VALUES ("
                 + "  (SELECT authorid FROM author WHERE name='Chunky Kibbles'), "
+                + "   'Raptor Fury', 'In which a Raptor Destroys the World'"
+                + ")",
+            "INSERT OR IGNORE INTO book (authorid, title, description) VALUES ("
+                + "  (SELECT authorid FROM author WHERE name='Chunky Kibbles'), "
                 + "   'Puppy Fury', 'In which a Puppy Destroys the World'"
                 + ")",
             
@@ -96,17 +100,18 @@ public class DBManager {
                 + " ((SELECT bookid FROM book WHERE title=?), ?, ?)";
         
         try(PreparedStatement stmt = dbConn.prepareStatement(wordCountSQL)) {
-            for(String bookName : new String[] { "Kitten Fury", "Husband of a Writer" } ) {
+            for(String bookName : new String[] { "Kitten Fury", "Husband of a Writer", "Raptor Fury" } ) {
                 stmt.setString(1, bookName);
                 
+                int n_days_delta = 365 - rng.nextInt(180);
                 int n_samples = 10 + rng.nextInt(100);
-                LocalDateTime currentWorkDay = LocalDateTime.now().minus(1, ChronoUnit.YEARS);
+                LocalDateTime currentWorkDay = LocalDateTime.now().minus(n_days_delta, ChronoUnit.DAYS);
                 for(int i = 0; i < n_samples; i++) {
                     int todaysProgress = 20 + rng.nextInt(8000);
                     stmt.setInt(2, todaysProgress);
                     stmt.setString(3, currentWorkDay.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     stmt.executeUpdate();
-                    int skipDays = Math.max(1, rng.nextInt(5)-3);
+                    int skipDays = Math.max(1, rng.nextInt(8)-2);
                     currentWorkDay = currentWorkDay.plusDays(1);
                 }
             }
