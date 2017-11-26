@@ -30,6 +30,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StackedXYBarRenderer;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.data.time.Day;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeTableXYDataset;
 
 /**
@@ -40,7 +41,8 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
 
     MainWindow mw;
     JFreeChart chart;
-    TimeTableXYDataset dataset = null;
+    TimeTableXYDataset progressDataset = new TimeTableXYDataset();
+    TimeSeriesCollection targetsDataset = new TimeSeriesCollection();
     
     /**
      * Creates new form ProgressPanel
@@ -60,17 +62,17 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
     }
 
     private synchronized void createChart() {
-        createProgressDataset();
+        createDatasets();
 //        chart = ChartFactory.createStackedBarChart("Progress", "Words", "Date", null,
 //                PlotOrientation.VERTICAL, true, true, true);
 
-        chart = ChartFactory.createXYLineChart("Progress", "Date", "Words", null, PlotOrientation.VERTICAL, true, true, true);
+        chart = ChartFactory.createXYLineChart("Progress", "Date", "Words", targetsDataset, PlotOrientation.VERTICAL, true, true, true);
         
         XYPlot plot = (XYPlot) chart.getPlot();
         StackedXYBarRenderer xyBarRenderer = new StackedXYBarRenderer(0.40);
         xyBarRenderer.setShadowVisible(false);
         xyBarRenderer.setBarPainter(new StandardXYBarPainter());
-        plot.setDataset(1, dataset);
+        plot.setDataset(1, progressDataset);
         plot.setRenderer(1, xyBarRenderer);
         
         DateAxis dateAxis = new DateAxis();
@@ -96,7 +98,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
     }
     
     public void updateChart() {
-        createProgressDataset();
+        createDatasets();
     }
     
     public void populateBookList() {
@@ -114,11 +116,9 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
         bookSelectionList.setSelectedIndex(0);
     }
     
-    public synchronized TimeTableXYDataset createProgressDataset() {
-        if(null == dataset) {
-            dataset = new TimeTableXYDataset();
-        }
-        dataset.clear();
+    public synchronized TimeTableXYDataset createDatasets() {
+        progressDataset.clear();
+        targetsDataset.removeAllSeries();
         
         String tmptblcreate = "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_booklist (bookid INTEGER NOT NULL, UNIQUE(bookid))";
         String tmptblempty = "DELETE FROM tmp_booklist WHERE 1";
@@ -145,7 +145,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
             ex.printStackTrace();
         }
 
-        String sql = "WITH days AS (SELECT STRFTIME('%Y-%m-%d', MIN(adddate)) AS start, "
+        String progresssql = "WITH days AS (SELECT STRFTIME('%Y-%m-%d', MIN(adddate)) AS start, "
                 + "                    STRFTIME('%Y-%m-%d', MIN(adddate)) AS curr, "
                 + "                    STRFTIME('%Y-%m-%d', MAX(adddate)) AS last "
                 + "              FROM wordcount INNER JOIN tmp_booklist ON tmp_booklist.bookid=wordcount.bookid"
@@ -162,7 +162,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
 
         DateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
                 
-        try(PreparedStatement stmt = dbConn.prepareStatement(sql)) {
+        try(PreparedStatement stmt = dbConn.prepareStatement(progresssql)) {
             try(ResultSet rs = stmt.executeQuery()) {
                 while(rs.next()) {
                     String day = rs.getString("day");
@@ -170,7 +170,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
                     Integer accumWords = rs.getInt("accumWords");
                     Date parsedDate = isoDateFormat.parse(day);
                     Day d = new Day(parsedDate);
-                    dataset.add(d, accumWords, title);
+                    progressDataset.add(d, accumWords, title);
                     
                 }
             }
@@ -185,7 +185,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
             ex.printStackTrace();
         }
         
-        return dataset;
+        return progressDataset;
     }
     
     /**
