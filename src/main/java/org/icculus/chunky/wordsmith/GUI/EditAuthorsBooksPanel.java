@@ -63,6 +63,42 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
         return m;
     }
     
+    public void addAuthor() {
+        String newval = JOptionPane.showInputDialog(this, "Add a new author/penname");
+        if(null != newval && newval.length()>0) {
+            String sql = "INSERT INTO author (name) VALUES (?)";
+            try(PreparedStatement stmt = mw.getDbConn().prepareStatement(sql)) {
+                stmt.setString(1, newval);
+                stmt.executeUpdate();
+                mw.getDbConn().commit();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            mw.notifyDBChange();
+        }
+    }
+    
+    public void addBook() {
+        String authorname = authorList.getSelectedValue();
+        if(null == authorname || authorname.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please choose an author to add a book to");
+            return;
+        }
+        String newval = JOptionPane.showInputDialog(this, "Add a new book under \"" + authorname + "\"");
+        if(null != newval && newval.length()>0) {
+            String sql = "INSERT INTO book (title, authorid) VALUES (?, (SELECT authorid FROM author WHERE name=?))";
+            try(PreparedStatement stmt = mw.getDbConn().prepareStatement(sql)) {
+                stmt.setString(1, newval);
+                stmt.setString(2, authorname);
+                stmt.executeUpdate();
+                mw.getDbConn().commit();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            mw.notifyDBChange();
+        }
+    }
+    
     public void deleteAuthor() {
         final String selectedAuthor = authorList.getSelectedValue();
         if(JOptionPane.showConfirmDialog(this, "Are you sure you want to delete \"" + selectedAuthor + "\"") != JOptionPane.OK_OPTION) {
@@ -80,6 +116,22 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
         mw.notifyDBChange();
     }
     
+    public void deleteBook() {
+        final BookListItem selectedBook = bookList.getSelectedValue();
+        if(JOptionPane.showConfirmDialog(this, "Are you sure you want to delete \"" + selectedBook.getTitle() + "\"") != JOptionPane.OK_OPTION) {
+            return;
+        }
+        String sql = "UPDATE book SET deleted=1 WHERE bookid=?";
+        try(PreparedStatement stmt = mw.getDbConn().prepareStatement(sql)) {
+            
+            stmt.setInt(1, selectedBook.getBookid());
+            stmt.executeUpdate();
+            mw.getDbConn().commit();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        mw.notifyDBChange();
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -124,6 +176,11 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
         add(jScrollPane1, gridBagConstraints);
 
         jButton2.setText("Add Author");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -143,6 +200,11 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
         add(jButton1, gridBagConstraints);
 
         jButton4.setText("Delete Book");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -150,6 +212,11 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
         add(jButton4, gridBagConstraints);
 
         jButton3.setText("Add Book");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
@@ -161,6 +228,18 @@ public class EditAuthorsBooksPanel extends javax.swing.JPanel implements DBChang
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         deleteAuthor();
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        deleteBook();
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        addAuthor();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        addBook();
+    }//GEN-LAST:event_jButton3ActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

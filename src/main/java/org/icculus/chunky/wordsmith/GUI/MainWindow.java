@@ -30,7 +30,6 @@ public class MainWindow extends javax.swing.JFrame {
         try {
             DBManager dbm = new DBManager();
             dbConn = dbm.openDB("test.sqlite");
-            dbm.createDummyData(dbConn);
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -77,6 +76,8 @@ public class MainWindow extends javax.swing.JFrame {
         addWordsHostPanel = new javax.swing.JPanel();
         chartHostPanel = new javax.swing.JPanel();
         authorsBooksHostPanel = new javax.swing.JPanel();
+        jPanel2 = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("WordSmith");
@@ -105,6 +106,18 @@ public class MainWindow extends javax.swing.JFrame {
         authorsBooksHostPanel.setLayout(new java.awt.GridLayout());
         mainTabs.addTab("Authors & Books", authorsBooksHostPanel);
 
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        jButton1.setText("Create some dummy authors, books, wordcounts to play with");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        jPanel2.add(jButton1, new java.awt.GridBagConstraints());
+
+        mainTabs.addTab("Extras", jPanel2);
+
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
@@ -113,6 +126,16 @@ public class MainWindow extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        try {
+            DBManager dbm = new DBManager();
+            dbm.createDummyData(dbConn);
+            notifyDBChange();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -154,7 +177,9 @@ public class MainWindow extends javax.swing.JFrame {
     private javax.swing.JPanel addWordsHostPanel;
     private javax.swing.JPanel authorsBooksHostPanel;
     private javax.swing.JPanel chartHostPanel;
+    private javax.swing.JButton jButton1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JTabbedPane mainTabs;
     // End of variables declaration//GEN-END:variables
 }
