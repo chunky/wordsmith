@@ -22,10 +22,15 @@ import javax.swing.event.ListSelectionListener;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.DateTickUnit;
+import org.jfree.chart.axis.DateTickUnitType;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.StackedBarRenderer;
-import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.StackedXYBarRenderer;
+import org.jfree.chart.renderer.xy.StandardXYBarPainter;
+import org.jfree.data.time.Day;
+import org.jfree.data.time.TimeTableXYDataset;
 
 /**
  *
@@ -35,7 +40,7 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
 
     MainWindow mw;
     JFreeChart chart;
-    DefaultCategoryDataset dataset = null;
+    TimeTableXYDataset dataset = null;
     
     /**
      * Creates new form ProgressPanel
@@ -54,17 +59,33 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
         });
     }
 
-    private void createChart() {
-        dataset = createProgressDataset();
-        chart = ChartFactory.createStackedBarChart("Progress", "Words", "Date", dataset,
-                PlotOrientation.VERTICAL, true, true, true);
+    private synchronized void createChart() {
+        createProgressDataset();
+//        chart = ChartFactory.createStackedBarChart("Progress", "Words", "Date", null,
+//                PlotOrientation.VERTICAL, true, true, true);
 
-        CategoryPlot categoryPlot = chart.getCategoryPlot();
+        chart = ChartFactory.createXYLineChart("Progress", "Date", "Words", null, PlotOrientation.VERTICAL, true, true, true);
         
-        StackedBarRenderer stackedBarRenderer = new StackedBarRenderer();
-        stackedBarRenderer.setShadowVisible(false);
-        categoryPlot.setRenderer(stackedBarRenderer);
+        XYPlot plot = (XYPlot) chart.getPlot();
+        StackedXYBarRenderer xyBarRenderer = new StackedXYBarRenderer(0.40);
+        xyBarRenderer.setShadowVisible(false);
+        xyBarRenderer.setBarPainter(new StandardXYBarPainter());
+        plot.setDataset(1, dataset);
+        plot.setRenderer(1, xyBarRenderer);
         
+        DateAxis dateAxis = new DateAxis();
+        dateAxis.setTickUnit(new DateTickUnit(DateTickUnitType.DAY, 7));
+        dateAxis.setDateFormatOverride(new SimpleDateFormat("yyyy-MM-dd"));
+        dateAxis.setVerticalTickLabels(true);
+        plot.setDomainAxis(dateAxis);
+        plot.setNoDataMessage("No progress on this book, yet!");
+//        
+//        CategoryPlot categoryPlot = chart.getCategoryPlot();
+//        
+//        StackedBarRenderer stackedBarRenderer = new StackedBarRenderer();
+//        stackedBarRenderer.setShadowVisible(false);
+//        categoryPlot.setRenderer(stackedBarRenderer);
+//        
         ChartPanel cp = new org.jfree.chart.ChartPanel(chart);
 
         cp.setMaximumDrawHeight(5000);
@@ -93,9 +114,9 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
         bookSelectionList.setSelectedIndex(0);
     }
     
-    public synchronized DefaultCategoryDataset createProgressDataset() {
+    public synchronized TimeTableXYDataset createProgressDataset() {
         if(null == dataset) {
-            dataset = new DefaultCategoryDataset();
+            dataset = new TimeTableXYDataset();
         }
         dataset.clear();
         
@@ -148,7 +169,8 @@ public class WritingProgressPanel extends javax.swing.JPanel implements DBChange
                     String title = rs.getString("title");
                     Integer accumWords = rs.getInt("accumWords");
                     Date parsedDate = isoDateFormat.parse(day);
-                    dataset.addValue(accumWords, title, parsedDate);
+                    Day d = new Day(parsedDate);
+                    dataset.add(d, accumWords, title);
                     
                 }
             }

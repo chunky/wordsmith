@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Random;
+import javax.swing.JOptionPane;
 import org.sqlite.SQLiteConfig;
 
 /**
@@ -33,8 +34,13 @@ public class DBManager {
         Connection dbConn;
         
         if(!dbPath.startsWith(":")) {
-            String parentDir = new File(dbPath).getAbsoluteFile().getParent();
-            new File(parentDir).mkdirs();
+            File parentDir = new File(new File(dbPath).getAbsoluteFile().getParent());
+            if(!parentDir.exists()) {
+                boolean mkdirs = parentDir.mkdirs();
+                if(!mkdirs) {
+                    JOptionPane.showMessageDialog(null, "Couldn't create directory for database");
+                }
+            }
         }
         
         SQLiteConfig sqlcf = new SQLiteConfig();

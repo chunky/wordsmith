@@ -77,6 +77,11 @@ public class BookListItem {
         }
         return ((BookListItem)obj).getBookid().equals(bookid);
     }
+
+    @Override
+    public int hashCode() {
+        return bookid;
+    }
     
     @Override
     public String toString() {
