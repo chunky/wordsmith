@@ -9,17 +9,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.util.converter.LocalDateTimeStringConverter;
 import javax.swing.DefaultListModel;
 import javax.swing.ListModel;
 import javax.swing.event.ListSelectionEvent;
@@ -27,8 +21,9 @@ import javax.swing.event.ListSelectionListener;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 /**
@@ -49,6 +44,7 @@ public class WritingProgressPanel extends javax.swing.JPanel {
         initComponents();
         populateBookList();
         createChart();
+        
         bookSelectionList.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
@@ -62,6 +58,8 @@ public class WritingProgressPanel extends javax.swing.JPanel {
         chart = ChartFactory.createStackedBarChart("Progress", "Words", "Date", dataset,
                 PlotOrientation.VERTICAL, true, true, true);
 
+        CategoryPlot categoryPlot = chart.getCategoryPlot();
+        CategoryAxis domainAxis = categoryPlot.getDomainAxis();
         ChartPanel cp = new org.jfree.chart.ChartPanel(chart);
 
         cp.setMaximumDrawHeight(5000);
@@ -98,44 +96,72 @@ public class WritingProgressPanel extends javax.swing.JPanel {
         bookSelectionList.setSelectedIndex(0);
     }
     
-    public DefaultCategoryDataset createProgressDataset() {
+    public synchronized DefaultCategoryDataset createProgressDataset() {
         if(null == dataset) {
             dataset = new DefaultCategoryDataset();
         }
         dataset.clear();
         
-        String sql = "WITH formattedDay AS (SELECT bookid, STRFTIME('%Y-%m-%d', adddate) AS day, delta FROM wordcount) "
-                + "  SELECT A.bookid AS bookid, A.day AS day, SUM(B.delta) AS accumWords, A.delta AS delta "
-                + "   FROM formattedDay A "
-                + "   INNER JOIN formattedDay B ON A.bookid = B.bookid AND A.day>=B.day "
-                + "   GROUP BY A.bookid, A.day "
-                + "   ORDER BY A.bookid, A.day ";
+        String tmptblcreate = "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_booklist (bookid INTEGER NOT NULL, UNIQUE(bookid))";
+        String tmptblempty = "DELETE FROM tmp_booklist WHERE 1";
+        String tmptblinsert = "INSERT OR IGNORE INTO tmp_booklist(bookid) VALUES (?)";
+        String tmptbldrop = "DROP TABLE IF EXISTS tmp_booklist";
         
-        DateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        
-        Set<Integer> selectedBooks = new HashSet<>();
         int[] selectedIndices = bookSelectionList.getSelectedIndices();
         ListModel<BookListItem> bookListModel = bookSelectionList.getModel();
-        for(int i : selectedIndices) {
-            selectedBooks.add(bookListModel.getElementAt(i).getBookid());
+        final Connection dbConn = mw.getDbConn();
+        try(Statement stmt = dbConn.createStatement()) {
+            stmt.executeUpdate(tmptblcreate);
+            stmt.executeUpdate(tmptblempty);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
-        
-        try(PreparedStatement stmt = mw.getDbConn().prepareStatement(sql)) {
+        try(PreparedStatement stmt = dbConn.prepareStatement(tmptblinsert)) {
+            for(int i : selectedIndices) {
+                stmt.setInt(1, bookListModel.getElementAt(i).getBookid());
+                stmt.executeUpdate();
+            }
+            dbConn.commit();
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        String sql = "WITH days AS (SELECT STRFTIME('%Y-%m-%d', MIN(adddate)) AS start, "
+                + "                    STRFTIME('%Y-%m-%d', MIN(adddate)) AS curr, "
+                + "                    STRFTIME('%Y-%m-%d', MAX(adddate)) AS last "
+                + "              FROM wordcount INNER JOIN tmp_booklist ON tmp_booklist.bookid=wordcount.bookid"
+                + "            UNION ALL "
+                + "              SELECT start, date(curr, '+1 day'), last FROM days WHERE curr<last) "
+                + "SELECT days.curr AS day, book.bookid AS bookid, book.title AS title, SUM(wordcount.delta) AS accumWords "
+                + "    FROM days "
+                + "    INNER JOIN wordcount ON days.curr>=STRFTIME('%Y-%m-%d', wordcount.adddate)"
+                + "    INNER JOIN book ON book.bookid=wordcount.bookid "
+                + "    INNER JOIN tmp_booklist ON tmp_booklist.bookid=book.bookid"
+                + "    GROUP BY book.bookid, days.curr "
+                + "LIMIT 10000 ";
+
+        DateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                
+        try(PreparedStatement stmt = dbConn.prepareStatement(sql)) {
             try(ResultSet rs = stmt.executeQuery()) {
                 while(rs.next()) {
-                    Integer bookid = rs.getInt("bookid");
-                    if(!selectedBooks.contains(bookid)) {
-                        continue;
-                    }
                     String day = rs.getString("day");
-                    Integer delta = rs.getInt("delta");
+                    String title = rs.getString("title");
                     Integer accumWords = rs.getInt("accumWords");
                     Date parsedDate = isoDateFormat.parse(day);
-                    dataset.addValue(accumWords, bookid, parsedDate);
+                    dataset.addValue(accumWords, title, parsedDate);
                     
                 }
             }
         } catch (SQLException|ParseException ex) {
+            ex.printStackTrace();
+        }
+        
+        try(Statement stmt = dbConn.createStatement()) {
+            stmt.executeUpdate(tmptbldrop);
+            dbConn.commit();
+        } catch (SQLException ex) {
             ex.printStackTrace();
         }
         
