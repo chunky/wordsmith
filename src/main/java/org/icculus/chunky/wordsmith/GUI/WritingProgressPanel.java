@@ -24,6 +24,8 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.CategoryItemRenderer;
+import org.jfree.chart.renderer.category.StackedBarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 /**
@@ -59,7 +61,11 @@ public class WritingProgressPanel extends javax.swing.JPanel {
                 PlotOrientation.VERTICAL, true, true, true);
 
         CategoryPlot categoryPlot = chart.getCategoryPlot();
-        CategoryAxis domainAxis = categoryPlot.getDomainAxis();
+        
+        StackedBarRenderer stackedBarRenderer = new StackedBarRenderer();
+        stackedBarRenderer.setShadowVisible(false);
+        categoryPlot.setRenderer(stackedBarRenderer);
+        
         ChartPanel cp = new org.jfree.chart.ChartPanel(chart);
 
         cp.setMaximumDrawHeight(5000);
@@ -138,7 +144,8 @@ public class WritingProgressPanel extends javax.swing.JPanel {
                 + "    INNER JOIN wordcount ON days.curr>=STRFTIME('%Y-%m-%d', wordcount.adddate)"
                 + "    INNER JOIN book ON book.bookid=wordcount.bookid "
                 + "    INNER JOIN tmp_booklist ON tmp_booklist.bookid=book.bookid"
-                + "    GROUP BY book.bookid, days.curr "
+                + "    GROUP BY book.bookid, days.curr"
+                + "    ORDER BY days.curr, book.bookid "
                 + "LIMIT 10000 ";
 
         DateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
