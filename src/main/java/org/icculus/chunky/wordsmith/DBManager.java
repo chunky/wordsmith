@@ -120,7 +120,7 @@ public class DBManager {
                 + " name TEXT NOT NULL,"
                 + " createdate INTEGER DEFAULT CURRENT_TIMESTAMP,"
                 + " deleted INTEGER DEFAULT 0,"
-                + " lastSelected INTEGER DEFAULT 0,"
+                + " lastselected INTEGER DEFAULT 0,"
                 + " UNIQUE(name)"
                 + ")",
             
@@ -130,7 +130,7 @@ public class DBManager {
                 + " description TEXT,"
                 + " createdate INTEGER DEFAULT CURRENT_TIMESTAMP,"
                 + " deleted INTEGER DEFAULT 0,"
-                + " lastSelected INTEGER DEFAULT 0, "
+                + " lastselected INTEGER DEFAULT 0, "
                 + " UNIQUE(authorid, title)"
                 + ")",
             

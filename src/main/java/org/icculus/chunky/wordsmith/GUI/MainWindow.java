@@ -180,8 +180,8 @@ public class MainWindow extends javax.swing.JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Store for GUI information
-                String sql1 = "UPDATE book SET lastSelected=0";
-                String sql2 = "UPDATE book SET lastSelected=1 WHERE title=?";
+                String sql1 = "UPDATE book SET lastselected=0";
+                String sql2 = "UPDATE book SET lastselected=1 WHERE title=?";
                 try(PreparedStatement stmt1 = dbConn.prepareStatement(sql1);
                         PreparedStatement stmt2 = dbConn.prepareStatement(sql2)) {
                     
@@ -198,8 +198,8 @@ public class MainWindow extends javax.swing.JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Store for GUI information
-                String sql1 = "UPDATE author SET lastSelected=0";
-                String sql2 = "UPDATE author SET lastSelected=1 WHERE name=?";
+                String sql1 = "UPDATE author SET lastselected=0";
+                String sql2 = "UPDATE author SET lastselected=1 WHERE name=?";
                 try(PreparedStatement stmt1 = dbConn.prepareStatement(sql1);
                         PreparedStatement stmt2 = dbConn.prepareStatement(sql2)) {
                     
