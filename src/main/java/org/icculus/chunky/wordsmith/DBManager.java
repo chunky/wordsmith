@@ -106,13 +106,15 @@ public class DBManager {
                 int n_days_delta = 365 - rng.nextInt(180);
                 int n_samples = 10 + rng.nextInt(100);
                 LocalDateTime currentWorkDay = LocalDateTime.now().minus(n_days_delta, ChronoUnit.DAYS);
-                for(int i = 0; i < n_samples; i++) {
-                    int todaysProgress = 20 + rng.nextInt(8000);
+                LocalDateTime today = LocalDateTime.now();
+                
+                for(int i = 0; i < n_samples && currentWorkDay.isBefore(today); i++) {
+                    int todaysProgress = 20 + rng.nextInt(4000);
                     stmt.setInt(2, todaysProgress);
                     stmt.setString(3, currentWorkDay.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     stmt.executeUpdate();
                     int skipDays = Math.max(1, rng.nextInt(8)-2);
-                    currentWorkDay = currentWorkDay.plusDays(1);
+                    currentWorkDay = currentWorkDay.plusDays(skipDays);
                 }
             }
             dbConn.commit();
@@ -143,9 +145,12 @@ public class DBManager {
                 + " bookid INTEGER NOT NULL REFERENCES book(bookid) ON DELETE CASCADE,"
                 + " delta INTEGER NOT NULL,"
                 + " adddate INTEGER DEFAULT CURRENT_TIMESTAMP,"
-                + " deleted INTEGER DEFAULT 0,"
-                + " UNIQUE(bookid, adddate)"
+                + " deleted INTEGER DEFAULT 0"
                 + ")",
+            
+            "CREATE INDEX IF NOT EXISTS idx_wordcount_book_date ON wordcount(bookid, adddate)",
+            
+            "CREATE INDEX IF NOT EXISTS idx_wordcount_date_book ON wordcount(adddate, bookid)",
             
             "CREATE TABLE IF NOT EXISTS target (targetid INTEGER PRIMARY KEY,"
                 + " bookid INTEGER NOT NULL REFERENCES book(bookid) ON DELETE CASCADE,"
