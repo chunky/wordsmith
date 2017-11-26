@@ -14,6 +14,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import javax.swing.DefaultListModel;
 import javax.swing.ListModel;
 import javax.swing.event.ListSelectionEvent;
@@ -21,10 +22,8 @@ import javax.swing.event.ListSelectionListener;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.chart.renderer.category.StackedBarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 
@@ -81,19 +80,11 @@ public class WritingProgressPanel extends javax.swing.JPanel {
     
     public void populateBookList() {
         Connection dbConn = mw.getDbConn();
-        String sql = "SELECT bookid, author.name AS author, book.title AS title"
-                + " FROM book INNER JOIN author ON author.authorid=book.authorid";
-        
         DefaultListModel<BookListItem> m = new DefaultListModel<>();
-        try(PreparedStatement stmt = dbConn.prepareStatement(sql)) {
-            try(ResultSet rs = stmt.executeQuery()) {
-                while(rs.next()) {
-                    int bookid = rs.getInt("bookid");
-                    String author = rs.getString("author");
-                    String title = rs.getString("title");
-                    BookListItem item = new BookListItem(bookid, author, title);
-                    m.addElement(item);
-                }
+        try {
+            List<BookListItem> bookListFromDB = BookListItem.getBookListFromDB(dbConn);
+            for(BookListItem i : bookListFromDB) {
+                m.addElement(i);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -175,26 +166,6 @@ public class WritingProgressPanel extends javax.swing.JPanel {
         return dataset;
     }
     
-    private static class BookListItem {
-        int bookid;
-        String author;
-        String title;
-
-        public BookListItem(int bookid, String author, String title) {
-            this.bookid = bookid;
-            this.author = author;
-            this.title = title;
-        }
-        
-        public int getBookid() {
-            return bookid;
-        }
-        
-        @Override
-        public String toString() {
-            return String.format("%s (%s)", title, author);
-        }
-    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
