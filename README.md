@@ -6,5 +6,4 @@ She wanted something "like the nano wordcount thing".
 
 ... so this is something like the nano wordcount thing
 
-Gary "ChunkyKs" Briggs
-<chunky@icculus.org>
+Gary "ChunkyKs" Briggs \<chunky@icculus.org\>
